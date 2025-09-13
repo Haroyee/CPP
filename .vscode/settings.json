@@ -109,6 +109,7 @@
     "variant": "cpp",
     "01_namespace_01": "cpp",
     "iomanip": "cpp",
-    "sstream": "cpp"
+    "sstream": "cpp",
+    "cstring": "cpp"
   }
 }
