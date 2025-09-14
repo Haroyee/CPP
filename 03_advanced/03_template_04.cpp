@@ -15,11 +15,11 @@ public:
         data = nullptr;
         size = 0;
     }
-    vector operator[](int i)
+    T operator[](int i) const
     {
         return *(this->data + i);
     }
-    bool is_empty()
+    bool is_empty() const
     {
         if (this->size)
             return false;
@@ -54,7 +54,7 @@ public:
         data = temp;
         --this->size;
     }
-    T front()
+    T front() const
     { // 访问第一个元素
         if (this->is_empty())
         {
@@ -63,7 +63,7 @@ public:
         }
         return *(this->data);
     }
-    T back()
+    T back() const
     {
         if (this->is_empty())
         {
@@ -72,7 +72,7 @@ public:
         }
         return *(this->data + size - 1);
     }
-    int getSize()
+    int getSize() const
     {
         return this->size;
     }
@@ -127,7 +127,7 @@ public:
         data = nullptr;
         this.szie = 0;
     }
-    void show()
+    void show() const
     {
         if (this->is_empty())
         {
@@ -168,5 +168,6 @@ int main()
     numbers.show();
     numbers.erase(20);
     numbers.show();
+    std::cout << numbers[20] << std::endl;
     return 0;
 }
