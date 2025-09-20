@@ -1,0 +1,401 @@
+producer : 生产了0号商品
+producer : 生产了1号商品
+producer : 生产了2号商品
+producer : 生产了3号商品
+consumer 0 : 消费了0号商品
+consumer 0 : 消费了1号商品
+consumer 0 : 消费了2号商品
+consumer 0 : 消费了3号商品
+producer : 生产了4号商品
+producer : 生产了0号商品
+producer : 生产了1号商品
+producer : 生产了2号商品
+producer : 生产了3号商品
+producer : 生产了4号商品
+producer : 生产了5号商品
+producer : 生产了5号商品
+producer : 生产了6号商品
+producer : 生产了7号商品
+producer : 生产了8号商品
+producer : 生产了9号商品
+producer : 生产了10号商品
+consumer 0 : 消费了4号商品
+consumer 0 : 消费了0号商品
+consumer 0 : 消费了1号商品
+consumer 0 : 消费了2号商品
+consumer 0 : 消费了3号商品
+consumer 0 : 消费了4号商品
+consumer 0 : 消费了5号商品
+consumer 0 : 消费了5号商品
+consumer 0 : 消费了6号商品
+consumer 0 : 消费了7号商品
+consumer 0 : 消费了8号商品
+consumer 0 : 消费了9号商品
+consumer 0 : 消费了10号商品
+producer : 生产了6号商品
+producer : 生产了7号商品
+producer : 生产了8号商品
+consumer 0 : 消费了6号商品
+consumer 0 : 消费了7号商品
+consumer 0 : 消费了8号商品
+producer : 生产了9号商品
+consumer 2 : 消费了9号商品
+producer : 生产了11号商品
+producer : 生产了10号商品
+consumer 3 : 消费了11号商品
+consumer 3 : 消费了10号商品
+producer : 生产了12号商品
+consumer 0 : 消费了12号商品
+producer : 生产了11号商品
+consumer 2 : 消费了11号商品
+producer : 生产了13号商品
+consumer 1 : 消费了13号商品
+producer : 生产了12号商品
+consumer 3 : 消费了12号商品
+producer : 生产了14号商品
+consumer 0 : 消费了14号商品
+producer : 生产了13号商品
+producer : 生产了14号商品
+consumer 3 : 消费了13号商品
+consumer 3 : 消费了14号商品
+producer : 生产了15号商品
+producer : 生产了16号商品
+producer : 生产了17号商品
+producer : 生产了18号商品
+producer : 生产了19号商品
+producer : 生产了20号商品
+producer : 生产了21号商品
+producer : 生产了22号商品
+producer : 生产了23号商品
+consumer 3 : 消费了15号商品
+consumer 3 : 消费了16号商品
+consumer 3 : 消费了17号商品
+consumer 3 : 消费了18号商品
+consumer 3 : 消费了19号商品
+consumer 3 : 消费了20号商品
+consumer 3 : 消费了21号商品
+consumer 3 : 消费了22号商品
+consumer 3 : 消费了23号商品
+producer : 生产了15号商品
+producer : 生产了16号商品
+producer : 生产了17号商品
+producer : 生产了18号商品
+consumer 1 : 消费了15号商品
+consumer 1 : 消费了16号商品
+consumer 1 : 消费了17号商品
+consumer 1 : 消费了18号商品
+producer : 生产了19号商品
+producer : 生产了20号商品
+producer : 生产了21号商品
+consumer 3 : 消费了19号商品
+consumer 3 : 消费了20号商品
+consumer 3 : 消费了21号商品
+producer : 生产了22号商品
+producer : 生产了23号商品
+producer : 生产了24号商品
+producer : 生产了25号商品
+producer : 生产了26号商品
+producer : 生产了27号商品
+producer : 生产了28号商品
+producer : 生产了29号商品
+producer : 生产了30号商品
+consumer 3 : 消费了22号商品
+consumer 3 : 消费了23号商品
+consumer 3 : 消费了24号商品
+consumer 3 : 消费了25号商品
+consumer 3 : 消费了26号商品
+consumer 3 : 消费了27号商品
+consumer 3 : 消费了28号商品
+consumer 3 : 消费了29号商品
+consumer 3 : 消费了30号商品
+producer : 生产了31号商品
+producer : 生产了32号商品
+consumer 3 : 消费了31号商品
+consumer 3 : 消费了32号商品
+producer : 生产了24号商品
+producer : 生产了25号商品
+consumer 3 : 消费了24号商品
+consumer 3 : 消费了25号商品
+producer : 生产了26号商品
+producer : 生产了27号商品
+producer : 生产了28号商品
+producer : 生产了33号商品
+consumer 2 : 消费了26号商品
+consumer 2 : 消费了27号商品
+consumer 2 : 消费了28号商品
+consumer 2 : 消费了33号商品
+producer : 生产了29号商品
+consumer 0 : 消费了29号商品
+producer : 生产了34号商品
+consumer 3 : 消费了34号商品
+producer : 生产了30号商品
+consumer 2 : 消费了30号商品
+producer : 生产了35号商品
+consumer 0 : 消费了35号商品
+producer : 生产了31号商品
+producer : 生产了32号商品
+consumer 1 : 消费了31号商品
+consumer 1 : 消费了32号商品
+producer : 生产了33号商品
+producer : 生产了34号商品
+producer : 生产了35号商品
+producer : 生产了36号商品
+consumer 2 : 消费了33号商品
+consumer 2 : 消费了34号商品
+consumer 2 : 消费了35号商品
+consumer 2 : 消费了36号商品
+producer : 生产了37号商品
+producer : 生产了38号商品
+producer : 生产了39号商品
+producer : 生产了40号商品
+producer : 生产了41号商品
+producer : 生产了42号商品
+producer : 生产了43号商品
+consumer 2 : 消费了37号商品
+consumer 2 : 消费了38号商品
+consumer 2 : 消费了39号商品
+consumer 2 : 消费了40号商品
+consumer 2 : 消费了41号商品
+consumer 2 : 消费了42号商品
+consumer 2 : 消费了43号商品
+producer : 生产了36号商品
+producer : 生产了37号商品
+producer : 生产了38号商品
+producer : 生产了44号商品
+producer : 生产了45号商品
+producer : 生产了46号商品
+producer : 生产了47号商品
+producer : 生产了48号商品
+producer : 生产了49号商品
+producer : 生产了50号商品
+producer : 生产了51号商品
+producer : 生产了52号商品
+producer : 生产了53号商品
+producer : 生产了54号商品
+producer : 生产了55号商品
+producer : 生产了56号商品
+producer : 生产了57号商品
+producer : 生产了58号商品
+producer : 生产了59号商品
+producer : 生产了60号商品
+consumer 1 : 消费了36号商品
+consumer 1 : 消费了37号商品
+consumer 1 : 消费了38号商品
+consumer 1 : 消费了44号商品
+consumer 1 : 消费了45号商品
+consumer 1 : 消费了46号商品
+consumer 1 : 消费了47号商品
+consumer 1 : 消费了48号商品
+consumer 1 : 消费了49号商品
+consumer 1 : 消费了50号商品
+consumer 1 : 消费了51号商品
+consumer 1 : 消费了52号商品
+consumer 1 : 消费了53号商品
+consumer 1 : 消费了54号商品
+consumer 1 : 消费了55号商品
+consumer 1 : 消费了56号商品
+consumer 1 : 消费了57号商品
+consumer 1 : 消费了58号商品
+consumer 1 : 消费了59号商品
+consumer 1 : 消费了60号商品
+producer : 生产了39号商品
+producer : 生产了40号商品
+producer : 生产了41号商品
+producer : 生产了61号商品
+consumer 1 : 消费了39号商品
+consumer 1 : 消费了40号商品
+consumer 1 : 消费了41号商品
+consumer 1 : 消费了61号商品
+producer : 生产了42号商品
+producer : 生产了43号商品
+producer : 生产了44号商品
+consumer 0 : 消费了42号商品
+consumer 0 : 消费了43号商品
+consumer 0 : 消费了44号商品
+producer : 生产了62号商品
+consumer 1 : 消费了62号商品
+producer : 生产了45号商品
+producer : 生产了46号商品
+producer : 生产了47号商品
+producer : 生产了48号商品
+producer : 生产了49号商品
+consumer 0 : 消费了45号商品
+consumer 0 : 消费了46号商品
+consumer 0 : 消费了47号商品
+consumer 0 : 消费了48号商品
+consumer 0 : 消费了49号商品
+producer : 生产了63号商品
+producer : 生产了64号商品
+consumer 3 : 消费了63号商品
+consumer 3 : 消费了64号商品
+producer : 生产了50号商品
+producer : 生产了51号商品
+consumer 3 : 消费了50号商品
+consumer 3 : 消费了51号商品
+producer : 生产了65号商品
+producer : 生产了66号商品
+producer : 生产了67号商品
+producer : 生产了68号商品
+producer : 生产了52号商品
+producer : 生产了53号商品
+producer : 生产了54号商品
+producer : 生产了55号商品
+producer : 生产了56号商品
+producer : 生产了57号商品
+producer : 生产了58号商品
+producer : 生产了59号商品
+producer : 生产了60号商品
+producer : 生产了61号商品
+producer : 生产了62号商品
+producer : 生产了63号商品
+producer : 生产了64号商品
+producer : 生产了65号商品
+producer : 生产了66号商品
+producer : 生产了67号商品
+consumer 3 : 消费了65号商品
+consumer 3 : 消费了66号商品
+producer : 生产了68号商品
+producer : 生产了69号商品
+consumer 1 : 消费了67号商品
+consumer 1 : 消费了68号商品
+consumer 1 : 消费了52号商品
+consumer 1 : 消费了53号商品
+consumer 1 : 消费了54号商品
+producer : 生产了69号商品
+producer : 生产了70号商品
+producer : 生产了71号商品
+producer : 生产了72号商品
+producer : 生产了73号商品
+consumer 2 : 消费了55号商品
+consumer 2 : 消费了56号商品
+consumer 2 : 消费了57号商品
+consumer 2 : 消费了58号商品
+consumer 2 : 消费了59号商品
+consumer 2 : 消费了60号商品
+consumer 2 : 消费了61号商品
+consumer 2 : 消费了62号商品
+consumer 2 : 消费了63号商品
+consumer 2 : 消费了64号商品
+consumer 2 : 消费了65号商品
+consumer 2 : 消费了66号商品
+consumer 2 : 消费了67号商品
+consumer 2 : 消费了68号商品
+consumer 2 : 消费了69号商品
+consumer 2 : 消费了69号商品
+consumer 2 : 消费了70号商品
+consumer 2 : 消费了71号商品
+consumer 2 : 消费了72号商品
+consumer 2 : 消费了73号商品
+producer : 生产了70号商品
+consumer 1 : 消费了70号商品
+producer : 生产了74号商品
+producer : 生产了75号商品
+producer : 生产了76号商品
+producer : 生产了77号商品
+producer : 生产了78号商品
+producer : 生产了79号商品
+producer : 生产了80号商品
+producer : 生产了81号商品
+producer : 生产了82号商品
+consumer 3 : 消费了74号商品
+consumer 3 : 消费了75号商品
+consumer 3 : 消费了76号商品
+consumer 3 : 消费了77号商品
+consumer 3 : 消费了78号商品
+consumer 3 : 消费了79号商品
+consumer 3 : 消费了80号商品
+consumer 3 : 消费了81号商品
+consumer 3 : 消费了82号商品
+producer : 生产了71号商品
+consumer 1 : 消费了71号商品
+producer : 生产了83号商品
+producer : 生产了84号商品
+producer : 生产了85号商品
+producer : 生产了86号商品
+consumer 0 : 消费了83号商品
+consumer 0 : 消费了84号商品
+consumer 0 : 消费了85号商品
+consumer 0 : 消费了86号商品
+producer : 生产了72号商品
+producer : 生产了73号商品
+producer : 生产了74号商品
+producer : 生产了75号商品
+producer : 生产了76号商品
+producer : 生产了77号商品
+producer : 生产了78号商品
+producer : 生产了79号商品
+producer : 生产了80号商品
+producer : 生产了81号商品
+producer : 生产了82号商品
+producer : 生产了83号商品
+producer : 生产了84号商品
+producer : 生产了85号商品
+consumer 1 : 消费了72号商品
+consumer 1 : 消费了73号商品
+consumer 1 : 消费了74号商品
+consumer 1 : 消费了75号商品
+consumer 1 : 消费了76号商品
+consumer 1 : 消费了77号商品
+consumer 1 : 消费了78号商品
+consumer 1 : 消费了79号商品
+consumer 1 : 消费了80号商品
+consumer 1 : 消费了81号商品
+consumer 1 : 消费了82号商品
+consumer 1 : 消费了83号商品
+consumer 1 : 消费了84号商品
+consumer 1 : 消费了85号商品
+producer : 生产了87号商品
+producer : 生产了88号商品
+producer : 生产了89号商品
+producer : 生产了90号商品
+producer : 生产了91号商品
+producer : 生产了92号商品
+producer : 生产了93号商品
+producer : 生产了94号商品
+producer : 生产了95号商品
+producer : 生产了96号商品
+producer : 生产了97号商品
+producer : 生产了98号商品
+producer : 生产了99号商品
+consumer 3 : 消费了87号商品
+consumer 3 : 消费了88号商品
+consumer 3 : 消费了89号商品
+consumer 3 : 消费了90号商品
+consumer 3 : 消费了91号商品
+consumer 3 : 消费了92号商品
+consumer 3 : 消费了93号商品
+consumer 3 : 消费了94号商品
+consumer 3 : 消费了95号商品
+consumer 3 : 消费了96号商品
+consumer 3 : 消费了97号商品
+consumer 3 : 消费了98号商品
+consumer 3 : 消费了99号商品
+producer : 生产了86号商品
+consumer 0 : 消费了86号商品
+producer : 生产了87号商品
+producer : 生产了88号商品
+producer : 生产了89号商品
+consumer 3 : 消费了87号商品
+consumer 3 : 消费了88号商品
+consumer 3 : 消费了89号商品
+producer : 生产了90号商品
+consumer 1 : 消费了90号商品
+producer : 生产了91号商品
+consumer 3 : 消费了91号商品
+producer : 生产了92号商品
+consumer 0 : 消费了92号商品
+producer : 生产了93号商品
+producer : 生产了94号商品
+consumer 2 : 消费了93号商品
+consumer 2 : 消费了94号商品
+producer : 生产了95号商品
+consumer 3 : 消费了95号商品
+producer : 生产了96号商品
+consumer 0 : 消费了96号商品
+producer : 生产了97号商品
+producer : 生产了98号商品
+producer : 生产了99号商品
+consumer 1 : 消费了97号商品
+consumer 1 : 消费了98号商品
+consumer 1 : 消费了99号商品
+总耗时: 0.0091749s
