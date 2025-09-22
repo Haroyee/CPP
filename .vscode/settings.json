@@ -60,6 +60,9 @@
 		"condition_variable": "cpp",
 		"mutex": "cpp",
 		"fstream": "cpp",
-		"future": "cpp"
+		"future": "cpp",
+		"chrono": "cpp",
+		"any": "cpp",
+		"cstdarg": "cpp"
 	}
 }
