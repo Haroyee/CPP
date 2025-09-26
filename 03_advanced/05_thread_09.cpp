@@ -1,448 +1,533 @@
+#include <functional>
+#include <thread>
 #include <iostream>
 #include <vector>
 #include <queue>
-#include <thread>
+#include <memory>
+#include <atomic>
 #include <mutex>
 #include <condition_variable>
-#include <future>
 #include <functional>
-#include <stdexcept>
-#include <atomic>
-#include <memory>
-#include <chrono>
 #include <unordered_map>
-#include <type_traits>
+#include <thread>
 
-namespace ThreadPool
+const int TASK_MAX_THRESHHOLD = INT32_MAX;
+const int THREAD_MAX_THRESHHOLD = 1024;
+const int THREAD_MAX_IDLE_TIME = 60; // 单位：秒
+
+// Any类型：可以接收任意数据的类型
+class Any
 {
+public:
+    Any() = default;
+    ~Any() = default;
+    Any(const Any &) = delete;
+    Any &operator=(const Any &) = delete;
+    Any(Any &&) = default;
+    Any &operator=(Any &&) = default;
 
-    // 任务优先级枚举
-    enum class Priority
+    // 这个构造函数可以让Any类型接收任意其它的数据
+    template <typename T> // T:int    Derive<int>
+    Any(T data) : base_(std::make_unique<Derive<T>>(data))
     {
-        High,
-        Normal,
-        Low
-    };
+    }
 
-    // 线程状态枚举
-    enum class ThreadState
+    // 这个方法能把Any对象里面存储的data数据提取出来
+    template <typename T>
+    T cast_()
     {
-        Idle,
-        Running,
-        Stopped
-    };
-
-    // 线程信息结构体
-    struct ThreadInfo
-    {
-        std::thread::id id;
-        ThreadState state;
-        std::string currentTask;
-    };
-
-    class ThreadPool
-    {
-    private:
-        // 任务包装类
-        struct TaskWrapper
+        Derive<T> *pd = dynamic_cast<Derive<T> *>(base_.get());
+        if (pd == nullptr)
         {
-            // 类型擦除基类
-            struct Base
-            {
-                virtual ~Base() = default;
-                virtual void execute() = 0;
-            };
+            throw "type is unmatch!";
+        }
+        return pd->data_;
+    }
 
-            // 模板派生类
-            template <typename F>
-            struct Impl : Base
-            {
-                F f;
-                Impl(F &&f_) : f(std::move(f_)) {}
-                void execute() override { f(); }
-            };
-
-            std::unique_ptr<Base> impl;
-            Priority priority;
-            std::string name;
-
-            TaskWrapper() = default;
-
-            template <typename F>
-            TaskWrapper(F &&f, Priority p, std::string n)
-                : impl(new Impl<F>(std::move(f))), priority(p), name(std::move(n)) {}
-
-            TaskWrapper(TaskWrapper &&other) noexcept
-                : impl(std::move(other.impl)), priority(other.priority), name(std::move(other.name)) {}
-
-            TaskWrapper &operator=(TaskWrapper &&other) noexcept
-            {
-                if (this != &other)
-                {
-                    impl = std::move(other.impl);
-                    priority = other.priority;
-                    name = std::move(other.name);
-                }
-                return *this;
-            }
-
-            // 删除拷贝构造函数和拷贝赋值运算符
-            TaskWrapper(const TaskWrapper &) = delete;
-            TaskWrapper &operator=(const TaskWrapper &) = delete;
-
-            void operator()()
-            {
-                if (impl)
-                    impl->execute();
-            }
-
-            // 优先级比较
-            bool operator<(const TaskWrapper &other) const
-            {
-                return static_cast<int>(priority) < static_cast<int>(other.priority);
-            }
-        };
-
-        // 线程池成员变量
-        std::vector<std::thread> workers;
-        std::priority_queue<TaskWrapper> tasks;
-        std::unordered_map<std::thread::id, ThreadInfo> threadInfos;
-
-        mutable std::mutex queueMutex;
-        std::condition_variable condition;
-        std::condition_variable completionCondition;
-
-        std::atomic<bool> stop;
-        std::atomic<size_t> activeTasks;
-        std::atomic<size_t> totalTasksProcessed;
-
-        size_t minThreads;
-        size_t maxThreads;
-        std::chrono::seconds idleThreadTimeout;
-
+private:
+    // 基类类型
+    class Base
+    {
     public:
-        // 构造函数
-        ThreadPool(size_t minThreads = std::thread::hardware_concurrency(),
-                   size_t maxThreads = std::thread::hardware_concurrency() * 2,
-                   std::chrono::seconds idleTimeout = std::chrono::seconds(30))
-            : stop(false), activeTasks(0), totalTasksProcessed(0),
-              minThreads(minThreads), maxThreads(maxThreads), idleThreadTimeout(idleTimeout)
-        {
-
-            if (minThreads == 0)
-                minThreads = 1;
-            if (maxThreads < minThreads)
-                maxThreads = minThreads;
-
-            for (size_t i = 0; i < minThreads; ++i)
-            {
-                addWorker();
-            }
-
-            // 启动线程管理线程
-            std::thread manager([this]
-                                { manageThreads(); });
-            manager.detach();
-        }
-
-        // 禁止拷贝
-        ThreadPool(const ThreadPool &) = delete;
-        ThreadPool &operator=(const ThreadPool &) = delete;
-
-        // 析构函数
-        ~ThreadPool()
-        {
-            shutdown();
-        }
-
-        // 提交任务
-        template <typename F, typename... Args>
-        auto submit(Priority priority, std::string taskName, F &&f, Args &&...args)
-            -> std::future<typename std::invoke_result_t<F, Args...>>
-        {
-
-            using return_type = typename std::invoke_result_t<F, Args...>;
-
-            auto task = std::make_shared<std::packaged_task<return_type()>>(
-                std::bind(std::forward<F>(f), std::forward<Args>(args)...));
-
-            std::future<return_type> res = task->get_future();
-
-            {
-                std::unique_lock<std::mutex> lock(queueMutex);
-
-                if (stop)
-                {
-                    throw std::runtime_error("提交任务到已停止的线程池");
-                }
-
-                tasks.emplace(
-                    [task]()
-                    { (*task)(); },
-                    priority,
-                    std::move(taskName));
-            }
-
-            condition.notify_one();
-            return res;
-        }
-
-        // 快捷提交方法
-        template <typename F, typename... Args>
-        auto submit(F &&f, Args &&...args)
-            -> std::future<typename std::invoke_result_t<F, Args...>>
-        {
-            return submit(Priority::Normal, "Unnamed", std::forward<F>(f), std::forward<Args>(args)...);
-        }
-
-        template <typename F, typename... Args>
-        auto submitHighPriority(std::string taskName, F &&f, Args &&...args)
-            -> std::future<typename std::invoke_result_t<F, Args...>>
-        {
-            return submit(Priority::High, std::move(taskName), std::forward<F>(f), std::forward<Args>(args)...);
-        }
-
-        template <typename F, typename... Args>
-        auto submitLowPriority(std::string taskName, F &&f, Args &&...args)
-            -> std::future<typename std::invoke_result_t<F, Args...>>
-        {
-            return submit(Priority::Low, std::move(taskName), std::forward<F>(f), std::forward<Args>(args)...);
-        }
-
-        // 等待所有任务完成
-        void waitForCompletion()
-        {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            completionCondition.wait(lock, [this]()
-                                     { return tasks.empty() && activeTasks == 0; });
-        }
-
-        // 优雅关闭
-        void shutdown()
-        {
-            {
-                std::unique_lock<std::mutex> lock(queueMutex);
-                stop = true;
-            }
-
-            condition.notify_all();
-
-            for (std::thread &worker : workers)
-            {
-                if (worker.joinable())
-                {
-                    worker.join();
-                }
-            }
-
-            workers.clear();
-        }
-
-        // 获取线程池状态
-        size_t getPendingTasks() const
-        {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            return tasks.size();
-        }
-
-        size_t getActiveTasks() const
-        {
-            return activeTasks;
-        }
-
-        size_t getTotalTasksProcessed() const
-        {
-            return totalTasksProcessed;
-        }
-
-        size_t getThreadCount() const
-        {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            return workers.size();
-        }
-
-        std::vector<ThreadInfo> getThreadInfo() const
-        {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            std::vector<ThreadInfo> info;
-            for (const auto &pair : threadInfos)
-            {
-                info.push_back(pair.second);
-            }
-            return info;
-        }
-
-    private:
-        // 添加工作线程
-        void addWorker()
-        {
-            workers.emplace_back([this]
-                                 {
-                // 注册线程信息
-                {
-                    std::unique_lock<std::mutex> lock(queueMutex);
-                    threadInfos[std::this_thread::get_id()] = {
-                        std::this_thread::get_id(),
-                        ThreadState::Idle,
-                        "None"
-                    };
-                }
-                
-                while (true) {
-                    std::unique_ptr<TaskWrapper> taskPtr;
-                    
-                    {
-                        std::unique_lock<std::mutex> lock(queueMutex);
-                        
-                        // 等待任务或停止信号
-                        condition.wait(lock, [this] {
-                            return stop || !tasks.empty();
-                        });
-                        
-                        if (stop && tasks.empty()) {
-                            break;
-                        }
-                        
-                        // 获取任务 - 创建新对象而不是移动
-                        taskPtr = std::make_unique<TaskWrapper>(std::move(const_cast<TaskWrapper&>(tasks.top())));
-                        tasks.pop();
-                        
-                        // 更新线程状态
-                        threadInfos[std::this_thread::get_id()].state = ThreadState::Running;
-                        threadInfos[std::this_thread::get_id()].currentTask = taskPtr->name;
-                        
-                        activeTasks++;
-                    }
-                    
-                    // 执行任务
-                    try {
-                        (*taskPtr)();
-                    } catch (const std::exception& e) {
-                        std::cerr << "任务执行异常: " << e.what() << std::endl;
-                    } catch (...) {
-                        std::cerr << "未知任务执行异常" << std::endl;
-                    }
-                    
-                    // 更新状态
-                    {
-                        std::unique_lock<std::mutex> lock(queueMutex);
-                        activeTasks--;
-                        totalTasksProcessed++;
-                        threadInfos[std::this_thread::get_id()].state = ThreadState::Idle;
-                        threadInfos[std::this_thread::get_id()].currentTask = "None";
-                        
-                        if (activeTasks == 0 && tasks.empty()) {
-                            completionCondition.notify_all();
-                        }
-                    }
-                    
-                    // 释放任务指针
-                    taskPtr.reset();
-                }
-                
-                // 移除线程信息
-                {
-                    std::unique_lock<std::mutex> lock(queueMutex);
-                    threadInfos.erase(std::this_thread::get_id());
-                } });
-        }
-
-        // 线程管理
-        void manageThreads()
-        {
-            while (!stop)
-            {
-                std::this_thread::sleep_for(std::chrono::seconds(5));
-
-                std::unique_lock<std::mutex> lock(queueMutex);
-
-                size_t currentThreads = workers.size();
-                size_t pendingTasks = tasks.size();
-
-                // 根据负载调整线程数
-                if (pendingTasks > currentThreads * 2 && currentThreads < maxThreads)
-                {
-                    // 增加线程
-                    size_t threadsToAdd = std::min(pendingTasks / 2, maxThreads - currentThreads);
-                    for (size_t i = 0; i < threadsToAdd; ++i)
-                    {
-                        addWorker();
-                    }
-                }
-                else if (pendingTasks < currentThreads / 2 && currentThreads > minThreads)
-                {
-                    // 减少空闲线程
-                    condition.notify_all(); // 唤醒所有线程以检查停止条件
-                }
-
-                // 清理已停止的线程
-                auto it = workers.begin();
-                while (it != workers.end())
-                {
-                    if (!it->joinable())
-                    {
-                        it = workers.erase(it);
-                    }
-                    else
-                    {
-                        ++it;
-                    }
-                }
-            }
-        }
+        virtual ~Base() = default;
     };
 
-} // namespace ThreadPool
+    // 派生类类型
+    template <typename T>
+    class Derive : public Base
+    {
+    public:
+        Derive(T data) : data_(data)
+        {
+        }
+        T data_; // 保存了任意的其它类型
+    };
 
-// 使用示例
-int main()
+private:
+    // 定义一个基类的指针
+    std::unique_ptr<Base> base_;
+};
+
+// 实现一个信号量类
+class Semaphore
 {
-    ThreadPool::ThreadPool pool(2, 8); // 最小2个线程，最大4个线程
-
-    // 提交一些任务
-    auto future1 = pool.submitHighPriority("重要计算", []
-                                           {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        std::cout << "高优先级任务完成" << std::endl;
-        return 42; });
-
-    auto future2 = pool.submitLowPriority("后台任务", []
-                                          {
-        std::this_thread::sleep_for(std::chrono::seconds(2));
-        std::cout << "低优先级任务完成" << std::endl;
-        return "结果"; });
-
-    for (int i = 0; i < 10000; ++i)
+public:
+    Semaphore(int limit = 0)
+        : resLimit_(limit)
     {
-        pool.submit([i]
+    }
+    ~Semaphore() = default;
+
+    // 获取一个信号量资源
+    void wait()
+    {
+        std::unique_lock<std::mutex> lock(mtx_);
+        // 等待信号量有资源，没有资源的话，会阻塞当前线程
+        cond_.wait(lock, [&]() -> bool
+                   { return resLimit_ > 0; });
+        resLimit_--;
+    }
+
+    // 增加一个信号量资源
+    void post()
+    {
+        std::unique_lock<std::mutex> lock(mtx_);
+        resLimit_++;
+        // linux下condition_variable的析构函数什么也没做
+        // 导致这里状态已经失效，无故阻塞
+        cond_.notify_all(); // 等待状态，释放mutex锁 通知条件变量wait的地方，可以起来干活了
+    }
+
+private:
+    int resLimit_;
+    std::mutex mtx_;
+    std::condition_variable cond_;
+};
+
+// Task类型的前置声明
+class Task;
+
+// 实现接收提交到线程池的task任务执行完成后的返回值类型Result
+class Result
+{
+public:
+    Result(std::shared_ptr<Task> task, bool isValid = true);
+    ~Result() = default;
+
+    // setVal方法，获取任务执行完的返回值的
+    void setVal(Any any);
+
+    // get方法，用户调用这个方法获取task的返回值
+    Any get();
+
+private:
+    Any any_;                    // 存储任务的返回值
+    Semaphore sem_;              // 线程通信信号量
+    std::shared_ptr<Task> task_; // 指向对应获取返回值的任务对象
+    std::atomic_bool isValid_;   // 返回值是否有效
+};
+
+// 任务抽象基类
+class Task
+{
+public:
+    Task();
+    ~Task() = default;
+    void exec();
+    void setResult(Result *res);
+
+    // 用户可以自定义任意任务类型，从Task继承，重写run方法，实现自定义任务处理
+    virtual Any run() = 0;
+
+private:
+    Result *result_; // Result对象的声明周期 》 Task的
+};
+
+// 线程池支持的模式
+enum class PoolMode
+{
+    MODE_FIXED,  // 固定数量的线程
+    MODE_CACHED, // 线程数量可动态增长
+};
+
+// 线程类型
+class Thread
+{
+public:
+    // 线程函数对象类型
+    using ThreadFunc = std::function<void(int)>;
+
+    // 线程构造
+    Thread(ThreadFunc func);
+    // 线程析构
+    ~Thread();
+    // 启动线程
+    void start();
+
+    // 获取线程id
+    int getId() const;
+
+private:
+    ThreadFunc func_;
+    static int generateId_;
+    int threadId_; // 保存线程id
+};
+
+/*
+example:
+ThreadPool pool;
+pool.start(4);
+
+class MyTask : public Task
+{
+    public:
+        void run() { // 线程代码... }
+};
+
+pool.submitTask(std::make_shared<MyTask>());
+*/
+// 线程池类型
+class ThreadPool
+{
+public:
+    // 线程池构造
+    ThreadPool();
+
+    // 线程池析构
+    ~ThreadPool();
+
+    // 设置线程池的工作模式
+    void setMode(PoolMode mode);
+
+    // 设置task任务队列上线阈值
+    void setTaskQueMaxThreshHold(int threshhold);
+
+    // 设置线程池cached模式下线程阈值
+    void setThreadSizeThreshHold(int threshhold);
+
+    // 给线程池提交任务
+    Result submitTask(std::shared_ptr<Task> sp);
+
+    // 开启线程池
+    void start(int initThreadSize = std::thread::hardware_concurrency());
+
+    ThreadPool(const ThreadPool &) = delete;
+    ThreadPool &operator=(const ThreadPool &) = delete;
+
+private:
+    // 定义线程函数
+    void threadFunc(int threadid);
+
+    // 检查pool的运行状态
+    bool checkRunningState() const;
+
+private:
+    // std::vector<std::unique_ptr<Thread>> threads_; // 线程列表
+    std::unordered_map<int, std::unique_ptr<Thread>> threads_; // 线程列表
+
+    int initThreadSize_;             // 初始的线程数量
+    int threadSizeThreshHold_;       // 线程数量上限阈值
+    std::atomic_int curThreadSize_;  // 记录当前线程池里面线程的总数量
+    std::atomic_int idleThreadSize_; // 记录空闲线程的数量
+
+    std::queue<std::shared_ptr<Task>> taskQue_; // 任务队列
+    std::atomic_int taskSize_;                  // 任务的数量
+    int taskQueMaxThreshHold_;                  // 任务队列数量上限阈值
+
+    std::mutex taskQueMtx_;            // 保证任务队列的线程安全
+    std::condition_variable notFull_;  // 表示任务队列不满
+    std::condition_variable notEmpty_; // 表示任务队列不空
+    std::condition_variable exitCond_; // 等到线程资源全部回收
+
+    PoolMode poolMode_;              // 当前线程池的工作模式
+    std::atomic_bool isPoolRunning_; // 表示当前线程池的启动状态
+};
+
+// 线程池构造
+ThreadPool::ThreadPool()
+    : initThreadSize_(0), taskSize_(0), idleThreadSize_(0), curThreadSize_(0), taskQueMaxThreshHold_(TASK_MAX_THRESHHOLD), threadSizeThreshHold_(THREAD_MAX_THRESHHOLD), poolMode_(PoolMode::MODE_FIXED), isPoolRunning_(false)
+{
+}
+
+// 线程池析构
+ThreadPool::~ThreadPool()
+{
+    isPoolRunning_ = false;
+
+    // 等待线程池里面所有的线程返回  有两种状态：阻塞 & 正在执行任务中
+    std::unique_lock<std::mutex> lock(taskQueMtx_);
+    notEmpty_.notify_all();
+    exitCond_.wait(lock, [&]() -> bool
+                   { return threads_.size() == 0; });
+}
+
+// 设置线程池的工作模式
+void ThreadPool::setMode(PoolMode mode)
+{
+    if (checkRunningState())
+        return;
+    poolMode_ = mode;
+}
+
+// 设置task任务队列上线阈值
+void ThreadPool::setTaskQueMaxThreshHold(int threshhold)
+{
+    if (checkRunningState())
+        return;
+    taskQueMaxThreshHold_ = threshhold;
+}
+
+// 设置线程池cached模式下线程阈值
+void ThreadPool::setThreadSizeThreshHold(int threshhold)
+{
+    if (checkRunningState())
+        return;
+    if (poolMode_ == PoolMode::MODE_CACHED)
+    {
+        threadSizeThreshHold_ = threshhold;
+    }
+}
+
+// 给线程池提交任务    用户调用该接口，传入任务对象，生产任务
+Result ThreadPool::submitTask(std::shared_ptr<Task> sp)
+{
+    // 获取锁
+    std::unique_lock<std::mutex> lock(taskQueMtx_);
+
+    // 线程的通信  等待任务队列有空余   wait   wait_for   wait_until
+    // 用户提交任务，最长不能阻塞超过1s，否则判断提交任务失败，返回
+    if (!notFull_.wait_for(lock, std::chrono::seconds(1),
+                           [&]() -> bool
+                           { return taskQue_.size() < (size_t)taskQueMaxThreshHold_; }))
+    {
+        // 表示notFull_等待1s种，条件依然没有满足
+        std::cerr << "task queue is full, submit task fail." << std::endl;
+        // return task->getResult();  // Task  Result   线程执行完task，task对象就被析构掉了
+        return Result(sp, false);
+    }
+
+    // 如果有空余，把任务放入任务队列中
+    taskQue_.emplace(sp);
+    taskSize_++;
+
+    // 因为新放了任务，任务队列肯定不空了，在notEmpty_上进行通知，赶快分配线程执行任务
+    notEmpty_.notify_all();
+
+    // cached模式 任务处理比较紧急 场景：小而快的任务 需要根据任务数量和空闲线程的数量，判断是否需要创建新的线程出来
+    if (poolMode_ == PoolMode::MODE_CACHED && taskSize_ > idleThreadSize_ && curThreadSize_ < threadSizeThreshHold_)
+    {
+        // std::cout << ">>> create new thread..." << std::endl;
+
+        // 创建新的线程对象
+        auto ptr = std::make_unique<Thread>(std::bind(&ThreadPool::threadFunc, this, std::placeholders::_1));
+        int threadId = ptr->getId();
+        threads_.emplace(threadId, std::move(ptr));
+        // 启动线程
+        threads_[threadId]->start();
+        // 修改线程个数相关的变量
+        curThreadSize_++;
+        idleThreadSize_++;
+    }
+
+    // 返回任务的Result对象
+    return Result(sp);
+    // return task->getResult();
+}
+
+// 开启线程池
+void ThreadPool::start(int initThreadSize)
+{
+    // 设置线程池的运行状态
+    isPoolRunning_ = true;
+
+    // 记录初始线程个数
+    initThreadSize_ = initThreadSize;
+    curThreadSize_ = initThreadSize;
+
+    // 创建线程对象
+    for (int i = 0; i < initThreadSize_; i++)
+    {
+        // 创建thread线程对象的时候，把线程函数给到thread线程对象
+        auto ptr = std::make_unique<Thread>(std::bind(&ThreadPool::threadFunc, this, std::placeholders::_1));
+        int threadId = ptr->getId();
+        threads_.emplace(threadId, std::move(ptr));
+        // threads_.emplace_back(std::move(ptr));
+    }
+
+    // 启动所有线程  std::vector<Thread*> threads_;
+    for (int i = 0; i < initThreadSize_; i++)
+    {
+        threads_[i]->start(); // 需要去执行一个线程函数
+        idleThreadSize_++;    // 记录初始空闲线程的数量
+    }
+}
+
+// 定义线程函数   线程池的所有线程从任务队列里面消费任务
+void ThreadPool::threadFunc(int threadid) // 线程函数返回，相应的线程也就结束了
+{
+    auto lastTime = std::chrono::high_resolution_clock().now();
+
+    // 所有任务必须执行完成，线程池才可以回收所有线程资源
+    for (;;)
+    {
+        std::shared_ptr<Task> task;
+        {
+            // 先获取锁
+            std::unique_lock<std::mutex> lock(taskQueMtx_);
+
+            // cached模式下，有可能已经创建了很多的线程，但是空闲时间超过60s，应该把多余的线程
+            // 结束回收掉（超过initThreadSize_数量的线程要进行回收）
+            // 当前时间 - 上一次线程执行的时间 > 60s
+
+            // 每一秒中返回一次   怎么区分：超时返回？还是有任务待执行返回
+            // 锁 + 双重判断
+            while (taskQue_.size() == 0)
+            {
+                // 线程池要结束，回收线程资源
+                if (!isPoolRunning_)
+                {
+                    threads_.erase(threadid); // std::this_thread::getid()
+
+                    exitCond_.notify_all();
+                    return; // 线程函数结束，线程结束
+                }
+
+                if (poolMode_ == PoolMode::MODE_CACHED)
+                {
+                    // 条件变量，超时返回了
+                    if (std::cv_status::timeout ==
+                        notEmpty_.wait_for(lock, std::chrono::seconds(1)))
                     {
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-            std::cout << "普通任务 " << i << " 完成" << std::endl; });
+                        auto now = std::chrono::high_resolution_clock().now();
+                        auto dur = std::chrono::duration_cast<std::chrono::seconds>(now - lastTime);
+                        if (dur.count() >= THREAD_MAX_IDLE_TIME && curThreadSize_ > initThreadSize_)
+                        {
+                            // 开始回收当前线程
+                            // 记录线程数量的相关变量的值修改
+                            // 把线程对象从线程列表容器中删除   没有办法 threadFunc《=》thread对象
+                            // threadid => thread对象 => 删除
+                            threads_.erase(threadid); // std::this_thread::getid()
+                            curThreadSize_--;
+                            idleThreadSize_--;
+
+                            return;
+                        }
+                    }
+                }
+                else
+                {
+                    // 等待notEmpty条件
+                    notEmpty_.wait(lock);
+                }
+
+                // if (!isPoolRunning_)
+                //{
+                //	threads_.erase(threadid); // std::this_thread::getid()
+                //	std::cout << "threadid:" << std::this_thread::get_id() << " exit!"
+                //		<< std::endl;
+                //	exitCond_.notify_all();
+                //	return; // 结束线程函数，就是结束当前线程了!
+                // }
+            }
+
+            idleThreadSize_--;
+
+            // 从任务队列种取一个任务出来
+            task = taskQue_.front();
+            taskQue_.pop();
+            taskSize_--;
+
+            // 如果依然有剩余任务，继续通知其它得线程执行任务
+            if (taskQue_.size() > 0)
+            {
+                notEmpty_.notify_all();
+            }
+
+            // 取出一个任务，进行通知，通知可以继续提交生产任务
+            notFull_.notify_all();
+        } // 就应该把锁释放掉
+
+        // 当前线程负责执行这个任务
+        if (task != nullptr)
+        {
+            // task->run(); // 执行任务；把任务的返回值setVal方法给到Result
+            task->exec();
+        }
+
+        idleThreadSize_++;
+        lastTime = std::chrono::high_resolution_clock().now(); // 更新线程执行完任务的时间
     }
+}
 
-    // 等待特定任务完成
-    auto result1 = future1.get();
-    auto result2 = future2.get();
+bool ThreadPool::checkRunningState() const
+{
+    return isPoolRunning_;
+}
 
-    std::cout << "任务1结果: " << result1 << std::endl;
-    std::cout << "任务2结果: " << result2 << std::endl;
+////////////////  线程方法实现
+int Thread::generateId_ = 0;
 
-    // 等待所有任务完成
-    pool.waitForCompletion();
+// 线程构造
+Thread::Thread(ThreadFunc func)
+    : func_(func), threadId_(generateId_++)
+{
+}
 
-    std::cout << "活跃任务数: " << pool.getActiveTasks() << std::endl;
-    std::cout << "待处理任务: " << pool.getPendingTasks() << std::endl;
-    std::cout << "总处理任务: " << pool.getTotalTasksProcessed() << std::endl;
+// 线程析构
+Thread::~Thread() {}
 
-    // 获取线程信息
-    auto threadInfo = pool.getThreadInfo();
-    for (const auto &info : threadInfo)
+// 启动线程
+void Thread::start()
+{
+    // 创建一个线程来执行一个线程函数 pthread_create
+    std::thread t(func_, threadId_); // C++11来说 线程对象t  和线程函数func_
+    t.detach();                      // 设置分离线程   pthread_detach  pthread_t设置成分离线程
+}
+
+int Thread::getId() const
+{
+    return threadId_;
+}
+
+/////////////////  Task方法实现
+Task::Task()
+    : result_(nullptr)
+{
+}
+
+void Task::exec()
+{
+    if (result_ != nullptr)
     {
-        std::cout << "线程 " << info.id << " 状态: "
-                  << static_cast<int>(info.state)
-                  << " 任务: " << info.currentTask << std::endl;
+        result_->setVal(run()); // 这里发生多态调用
     }
+}
 
-    // 析构函数会自动关闭线程池
-    return 0;
+void Task::setResult(Result *res)
+{
+    result_ = res;
+}
+
+/////////////////   Result方法的实现
+Result::Result(std::shared_ptr<Task> task, bool isValid)
+    : isValid_(isValid), task_(task)
+{
+    task_->setResult(this);
+}
+
+Any Result::get() // 用户调用的
+{
+    if (!isValid_)
+    {
+        return "";
+    }
+    sem_.wait(); // task任务如果没有执行完，这里会阻塞用户的线程
+    return std::move(any_);
+}
+
+void Result::setVal(Any any) // 谁调用的呢？？？
+{
+    // 存储task的返回值
+    this->any_ = std::move(any);
+    sem_.post(); // 已经获取的任务的返回值，增加信号量资源
 }
