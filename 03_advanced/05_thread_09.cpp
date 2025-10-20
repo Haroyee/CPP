@@ -531,3 +531,56 @@ void Result::setVal(Any any) // 谁调用的呢？？？
     this->any_ = std::move(any);
     sem_.post(); // 已经获取的任务的返回值，增加信号量资源
 }
+
+using uLong = unsigned long long;
+
+class MyTask : public Task
+{
+public:
+    MyTask(int begin, int end)
+        : begin_(begin), end_(end)
+    {
+    }
+    // 问题一：怎么设计run函数的返回值，可以表示任意的类型
+    // Java Python   Object 是所有其它类类型的基类
+    // C++17 Any类型
+    Any run() // run方法最终就在线程池分配的线程中去做执行了!
+    {
+        std::cout << "tid:" << std::this_thread::get_id()
+                  << "begin!" << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        uLong sum = 0;
+        for (uLong i = begin_; i <= end_; i++)
+            sum += i;
+        std::cout << "tid:" << std::this_thread::get_id()
+                  << "end!" << std::endl;
+
+        return sum;
+    }
+
+private:
+    int begin_;
+    int end_;
+};
+
+int main()
+{
+    std::vector<Result> vr;
+    ThreadPool pool;
+    pool.setMode(PoolMode::MODE_CACHED);
+    pool.start(4);
+
+    for (int i = 0; i < 10000; ++i)
+    {
+        pool.submitTask(std::make_shared<MyTask>(1, 100000000));
+    }
+
+    // std::cout<<"hell"<<std::endl;
+
+    std::this_thread::sleep_for(std::chrono::seconds(120));
+
+    for (int i = 0; i < 10000; ++i)
+    {
+        pool.submitTask(std::make_shared<MyTask>(1, 100000000));
+    }
+}
